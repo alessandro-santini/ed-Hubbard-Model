@@ -7,23 +7,26 @@ from   scipy import interpolate
 
 def c(s, i):
     lst = list(s)
+    if(lst[i]=='0'): stop 'Error: passing a state annihilated by c'
     lst[i] = '0'
     return ''.join(lst)
 
-def c_q(basis,basis_minus,state,qx):
+def c_q_up(basis,basis_minus,state,qx):
     len_RepQx_minus = len(basis_minus.RepQx)
     RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
     components = np.zeros(len_RepQx_minus, dtype = np.complex128)    
     for Index_rep, rep in enumerate(basis.RepQx):
+            if (state[Index_rep]==0.): continue
             Up_state   = np.binary_repr(rep[0], width = basis.L)
             for i in np.arange(0,hf.L):
                 if(Up_state[i] == '1'):
                     NewUpInt = int(c(Up_state,i), 2)
                     Swapped_rep, j_x, sign, info = basis_minus.check_rep(NewUpInt, rep[1])
+                    sign = sign*(-1)**np.binary_repr(NewUpInt,width = basis.L)[:i].count('1')
                     if(info):
                         Index_Swapped_rep = RepQxToIndex_minus[str(Swapped_rep[0])]
                         components[Index_Swapped_rep] += sign*np.exp( 1j*qx*j_x)*\
-                            state[Index_rep]*basis.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
+                            state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
     return components
 
 hf   = hm.FermionicBasis_1d(3, 3, 6)

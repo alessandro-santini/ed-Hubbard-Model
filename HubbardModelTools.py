@@ -181,7 +181,6 @@ def Lanczos(H,Psi,Nsteps,m=4,eps=1e-8):
       u = np.matmul(Vm, s[:,m])
       r = ( H.dot(u)-eig[m]*u )
       if (np.linalg.norm(r)<eps):
-        print(i)
         break
   return np.matmul(Vm,s), eig, i, np.linalg.norm(r)
 
@@ -227,7 +226,6 @@ def Davidson(H,Nsteps,m=4,eps=1e-8):
       
       if (np.linalg.norm(r) < eps ):
         if (m==m_trial):
-          #print('CI SONO ',i)
           break
         else:
           m_trial +=1

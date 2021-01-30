@@ -7,7 +7,7 @@ from   scipy import interpolate
 
 def c(s, i):
     lst = list(s)
-    if(lst[i]=='0'): stop 'Error: passing a state annihilated by c'
+    if(lst[i]=='0'): raise Exception("Error: passing a state annihilated by c")
     lst[i] = '0'
     return ''.join(lst)
 
@@ -16,7 +16,7 @@ def c_q_up(basis,basis_minus,state,qx):
     RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
     components = np.zeros(len_RepQx_minus, dtype = np.complex128)    
     for Index_rep, rep in enumerate(basis.RepQx):
-            if (state[Index_rep]==0.): continue
+            if (np.abs(state[Index_rep])<10**-15): continue
             Up_state   = np.binary_repr(rep[0], width = basis.L)
             for i in np.arange(0,hf.L):
                 if(Up_state[i] == '1'):
@@ -42,4 +42,4 @@ gs_state  = states[:,0]
 hf_minus = hm.FermionicBasis_1d(2, 3, 6)
 H_minus  = hm.H_Qx(hf_minus, 0., U)
 
-components = c_q(hf,hf_minus,gs_state,0.)
+components = c_q_up(hf,hf_minus,gs_state,0.)

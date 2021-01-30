@@ -6,11 +6,6 @@ import matplotlib
 import seaborn as sns
 from   scipy import interpolate
 
-def c(){
-        
-        }
-
-
 hf = hm.FermionicBasis_1d(5, 5, 10)
 U  = 5.
 H  = hm.H_Qx(hf,0.,U) 

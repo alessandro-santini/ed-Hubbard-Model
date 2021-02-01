@@ -11,7 +11,7 @@ def c(s, i):
     lst[i] = '0'
     return ''.join(lst)
 
-def c_q_up(basis,basis_minus,state,qx):
+def c_q_up(basis,basis_minus,state,qx,k):
     len_RepQx_minus = len(basis_minus.RepQx)
     RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
     components = np.zeros(len_RepQx_minus, dtype = np.complex128)    
@@ -25,7 +25,7 @@ def c_q_up(basis,basis_minus,state,qx):
                     sign = sign*(-1)**np.binary_repr(NewUpInt,width = basis.L)[:i].count('1')
                     if(info):
                         Index_Swapped_rep = RepQxToIndex_minus[str(Swapped_rep[0])]
-                        components[Index_Swapped_rep] += sign*np.exp( 1j*qx*j_x)*\
+                        components[Index_Swapped_rep] += sign*np.exp( 1j*(j_x*(k-qx)-qx*i) )*\
                             state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
     return components
 

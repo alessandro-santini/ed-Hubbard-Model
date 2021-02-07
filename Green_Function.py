@@ -30,27 +30,34 @@ def c_q_up(basis,basis_minus,state,qx,k):
                             state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
     return components/np.linalg.norm(components)
 
-#Applying n_{q=0}
-def n_q0(basis,state):
-    len_RepQx = len(basis.RepQx)
-    components = np.zeros(len_RepQx, dtype = np.complex128)    
+def n_q(basis,basis_minus,state,k,qx):
+    len_RepQx_minus = len(basis_minus.RepQx)
+    RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
+    components = np.zeros(len_RepQx_minus, dtype = np.complex128)    
     for Index_rep, rep in enumerate(basis.RepQx):
             if (np.abs(state[Index_rep])<10**-15): continue
+            if( not( str(rep) in RepQxToIndex_minus)): continue
+            Index_n_rep = RepQxToIndex_minus[str(rep)]
             Up_state   = np.binary_repr(rep[0], width = basis.L)
             Down_state   = np.binary_repr(rep[1], width = basis.L)
-            for i in np.arange(0,hf.L):
+            for j in np.arange(0,hf.L):
                 #By keeping only up/down one gets the operator for only up/down densities
-                Nup   = int(Up_state[i])
-                Ndown = int(Down_state[i])
-                components[Index_rep] += state[Index_rep]*(Nup+Ndown)
+                Nup   = int(Up_state[j])
+                Ndown = int(Down_state[j])
+                components[Index_n_rep] += state[Index_rep]*(Nup+Ndown)*np.exp(-1j*qx*j)*basis_minus.NormRepQx[Index_n_rep]/basis.NormRepQx[Index_rep]
     return components/np.linalg.norm(components)
 
 
-hf   = hm.FermionicBasis_1d(3, 3, 6)
-hf_minus = hm.FermionicBasis_1d(2, 3, 6)
-U    = 5.
-k    = 0.
-H    = hm.H_Qx(hf,k,U) 
+hf   = hm.FermionicBasis_1d(4, 4, 8)
+#For C_q
+#hf_minus = hm.FermionicBasis_1d(3, 4, 8)
+#For N_q
+hf_minus = hm.FermionicBasis_1d(4, 4, 8)
+
+#Better check those before every run
+U    = 0.
+k    = np.pi
+H    = hm.H_Qx(hf,k,U)
 dimH = H.shape[0]
 v0   = np.random.random(dimH)+1j*np.random.random(dimH)
 states, eig, Ndone, _ = hm.Lanczos(H,v0,100,m=0)
@@ -58,18 +65,26 @@ gs_energy = eig[0]
 gs_state  = states[:,0]
 
 
-n_g = 20000
+n_lanc = 50
+n_g = 1000
 G = np.zeros(n_g)
-zspace=np.linspace(gs_energy,17+gs_energy,n_g)
-epsi=1j*1e-10
+zspace = np.linspace(gs_energy,20+gs_energy,n_g)
+epsi = 1j*1e-10
 
-for iii in range(6):
-    q    = hf.momenta[iii]
+
+#Before running check the following: k,q,Operator,hf_minus
+for iii,q in enumerate(hf.momenta):
+    
     H_minus = hm.H_Qx(hf_minus,k-q,U)
 
-    #Lanczos procedure for density Green's function
+####Lanczos procedure for density Green's function####
+    
     N = len(hf_minus.RepQx)
-    Psi = c_q_up(hf,hf_minus,gs_state,q,k)
+    #For C_q
+    #Psi = c_q_up(hf,hf_minus,gs_state,q,k)
+    #For N_q
+    Psi = n_q(hf,hf_minus,gs_state,q,k)
+
     PsiMinus = np.zeros_like(Psi, dtype=np.complex128)
     PsiPlus  = np.zeros_like(Psi, dtype=np.complex128)
 
@@ -79,7 +94,6 @@ for iii in range(6):
     alpha = np.append(alpha, np.vdot(Psi,H_minus.dot(Psi)) )
     beta  = np.append(beta,0.0)
 
-    n_lanc = 100
     for i in np.arange(1,n_lanc):
 
         PsiPlus  = (H_minus.dot(Psi)-alpha[i-1]*Psi)-beta[i-1]*PsiMinus
@@ -94,17 +108,14 @@ for iii in range(6):
     u = np.zeros(shape=(n_lanc,1),dtype=np.complex128)
     u[0,0]=1.
 
-    #print(gs_energy,np.linalg.eigh(np.diag(alpha, k=0)+np.diag(beta[1:],k=1)+np.diag(beta[1:],k=-1))[0][0])
-
-
     for iz,z in enumerate(zspace):
-        m = np.diag(z+epsi-alpha, k=0)-np.diag(beta[1:],k=1)-np.diag(beta[1:],k=-1) 
+        m = np.diag(z+epsi-alpha, k=0)-np.diag(beta[1:],k=1)-np.diag(beta[1:].conjugate(),k=-1) 
         num = np.linalg.det( np.append(u,m[:,1:],axis=1) )
         den = np.linalg.det(m)
         G[iz] += (num/den).imag
 
 
-    print(zspace[find_peaks(G)[0]])
+print(zspace[find_peaks(abs(G))[0]])
 plt.plot(zspace,abs(G))
 plt.yscale('log')
 plt.show()

@@ -12,12 +12,14 @@ def c(s, i):
     lst[i] = '0'
     return ''.join(lst)
 
-def c_dagger(s, i):
+def cdag(s, i):
     lst = list(s)
     if(lst[i]=='1'): raise Exception(r"Error: passing a state annihilated by c^\dagger")
     lst[i] = '1'
     return ''.join(lst)
 
+
+#C_q
 def c_q_up(basis,basis_minus,state,qx,k):
     len_RepQx_minus = len(basis_minus.RepQx)
     RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
@@ -35,6 +37,63 @@ def c_q_up(basis,basis_minus,state,qx,k):
                         components[Index_Swapped_rep] += sign*np.exp( 1j*(j_x*(k-qx)-qx*i) )*\
                             state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
     return components/np.linalg.norm(components)
+
+def c_q_down(basis,basis_minus,state,qx,k):
+    len_RepQx_minus = len(basis_minus.RepQx)
+    RepQxToIndex_minus = dict(zip(list(map(str,basis_minus.RepQx)), np.arange(0, len_RepQx_minus))) 
+    components = np.zeros(len_RepQx_minus, dtype = np.complex128)    
+    for Index_rep, rep in enumerate(basis.RepQx):
+            if (np.abs(state[Index_rep])<10**-15): continue
+            Down_state   = np.binary_repr(rep[1], width = basis.L)
+            for i in np.arange(0,basis.L):
+                if(Down_state[i] == '1'):
+                    NewDownInt = int(c(Down_state,i), 2)
+                    Swapped_rep, j_x, sign, info = basis_minus.check_rep(rep[0], NewDownInt)
+                    sign = sign*(-1)**(np.binary_repr(NewDownInt,width = basis.L)[:i].count('1')+np.binary_repr(rep[0],width = basis.L)[:i].count('1'))
+                    if(info):
+                        Index_Swapped_rep = RepQxToIndex_minus[str(Swapped_rep[0])]
+                        components[Index_Swapped_rep] += sign*np.exp( 1j*(j_x*(k-qx)-qx*i) )*\
+                            state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
+    return components/np.linalg.norm(components)
+
+
+#C^dagger_q
+def cdag_q_up(basis,basis_plus,state,qx,k):
+    len_RepQx_plus = len(basis_plus.RepQx)
+    RepQxToIndex_plus = dict(zip(list(map(str,basis_plus.RepQx)), np.arange(0, len_RepQx_plus))) 
+    components = np.zeros(len_RepQx_plus, dtype = np.complex128)    
+    for Index_rep, rep in enumerate(basis.RepQx):
+            if (np.abs(state[Index_rep])<10**-15): continue
+            Up_state   = np.binary_repr(rep[0], width = basis.L)
+            for i in np.arange(0,basis.L):
+                if(Up_state[i] == '0'):
+                    NewUpInt = int(cdag(Up_state,i), 2)
+                    Swapped_rep, j_x, sign, info = basis_plus.check_rep(NewUpInt, rep[1])
+                    sign = sign*(-1)**(np.binary_repr(NewUpInt,width = basis.L)[:i].count('1')+np.binary_repr(rep[1],width = basis.L)[:i].count('1'))
+                    if(info):
+                        Index_Swapped_rep = RepQxToIndex_plus[str(Swapped_rep[0])]
+                        components[Index_Swapped_rep] += sign*np.exp( 1j*(j_x*(k-qx)-qx*i) )*\
+                            state[Index_rep]*basis_plus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
+    return components/np.linalg.norm(components)
+
+def cdag_q_down(basis,basis_plus,state,qx,k):
+    len_RepQx_plus = len(basis_plus.RepQx)
+    RepQxToIndex_plus = dict(zip(list(map(str,basis_plus.RepQx)), np.arange(0, len_RepQx_plus))) 
+    components = np.zeros(len_RepQx_plus, dtype = np.complex128)    
+    for Index_rep, rep in enumerate(basis.RepQx):
+            if (np.abs(state[Index_rep])<10**-15): continue
+            Down_state   = np.binary_repr(rep[1], width = basis.L)
+            for i in np.arange(0,basis.L):
+                if(Down_state[i] == '1'):
+                    NewDownInt = int(c(Down_state,i), 2)
+                    Swapped_rep, j_x, sign, info = basis_plus.check_rep(rep[0], NewDownInt)
+                    sign = sign*(-1)**(np.binary_repr(NewDownInt,width = basis.L)[:i].count('1')+np.binary_repr(rep[0],width = basis.L)[:i].count('1'))
+                    if(info):
+                        Index_Swapped_rep = RepQxToIndex_plus[str(Swapped_rep[0])]
+                        components[Index_Swapped_rep] += sign*np.exp( 1j*(j_x*(k-qx)-qx*i) )*\
+                            state[Index_rep]*basis_plus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
+    return components/np.linalg.norm(components)
+
 
 def n_q(basis,basis_minus,state,k,qx):
     len_RepQx_minus = len(basis_minus.RepQx)
@@ -72,7 +131,7 @@ def j_q_up(basis,basis_minus,state,k,qx):
                 if(Up_state[i] == '1'): continue
                 # Right hop ___  c^\dagger_i c_{i-1}
                 if(Up_state[iprev]=='1'): 
-                    NewUpInt = int( c_dagger(c(Up_state,iprev), i), 2)
+                    NewUpInt = int( cdag(c(Up_state,iprev), i), 2)
                     Swapped_rep, j_x, sign, info = basis_minus.check_rep(NewUpInt, rep[1])
                     if(i==0):
                         sign = sign*(-1)**(basis.N+1)
@@ -83,7 +142,7 @@ def j_q_up(basis,basis_minus,state,k,qx):
                         state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
                 # Left hop  ___ -c^\dagger_i c_{i+1}
                 if(Up_state[inext]=='1'): 
-                    NewUpInt = int( c_dagger(c(Up_state,inext), i), 2)
+                    NewUpInt = int( cdag(c(Up_state,inext), i), 2)
                     Swapped_rep, j_x, sign, info = basis_minus.check_rep(NewUpInt, rep[1])
                     if(i==basis.L):
                         sign = sign*(-1)**(basis.N)
@@ -94,19 +153,19 @@ def j_q_up(basis,basis_minus,state,k,qx):
                         state[Index_rep]*basis_minus.NormRepQx[Index_Swapped_rep]/basis.NormRepQx[Index_rep]
     return components/np.linalg.norm(components)    
 
-hf   = hm.FermionicBasis_1d(3, 3, 6)
+hf   = hm.FermionicBasis_1d(4, 4, 8)
 #For C_q
 #hf_minus = hm.FermionicBasis_1d(3, 4, 8)
 #For N_q
-hf_minus = hm.FermionicBasis_1d(3, 3, 6)
+hf_minus = hm.FermionicBasis_1d(4, 4, 8)
 
 #Better check those before every run
-for ijk,U in enumerate(np.linspace(0.,12,120,endpoint=True)):
-    k    = 0.#np.pi
+for ijk,U in enumerate(np.linspace(6,12,13,endpoint=True)):
+    k    = np.pi
     H    = hm.H_Qx(hf,k,U)
     dimH = H.shape[0]
     v0   = np.random.random(dimH)+1j*np.random.random(dimH)
-    m_state = 0
+    m_state = 1
     states, eig, Ndone, _ = hm.Lanczos(H,v0,100,m=m_state)
     gs_energy = eig[m_state]
     gs_state  = states[:,m_state]
@@ -115,12 +174,13 @@ for ijk,U in enumerate(np.linspace(0.,12,120,endpoint=True)):
     n_lanc = 50
     n_g = 4000
     G = np.zeros(n_g)
-    zspace = np.linspace(gs_energy,100+gs_energy,n_g)
-    epsi = 1j*1e-13
+    wspace = np.linspace(-20,20,n_g)
+    zspace = gs_energy+wspace
+    epsi = 1j*1e-1
     
     
     #Before running check the following: k,q,Operator,hf_minus
-    for iii,q in enumerate(hf.momenta):
+    for iii,q in enumerate([0.0]):
         
         H_minus = hm.H_Qx(hf_minus,k-q,U)
     
@@ -135,7 +195,7 @@ for ijk,U in enumerate(np.linspace(0.,12,120,endpoint=True)):
         PsiMinus = np.zeros_like(Psi, dtype=np.complex128)
         PsiPlus  = np.zeros_like(Psi, dtype=np.complex128)
     
-        Vm    = np.reshape(Psi.copy(),newshape=(N,1))
+        Vm    = Psi.copy().reshape(N,1)
         alpha = np.array([])
         beta  = np.array([])
         alpha = np.append(alpha, np.vdot(Psi,H_minus.dot(Psi)) )
@@ -146,7 +206,7 @@ for ijk,U in enumerate(np.linspace(0.,12,120,endpoint=True)):
             PsiPlus  = (H_minus.dot(Psi)-alpha[i-1]*Psi)-beta[i-1]*PsiMinus
             beta     = np.append(beta,np.linalg.norm(PsiPlus))
             PsiPlus  = PsiPlus/beta[i]
-            Vm       = np.append(Vm,np.reshape(PsiPlus,newshape=(N,1) ),axis=1)
+            Vm       = np.append(Vm,PsiPlus.reshape(N,1),axis=1)
             PsiMinus = Psi.copy()
             Psi      = PsiPlus.copy()
             
@@ -155,23 +215,26 @@ for ijk,U in enumerate(np.linspace(0.,12,120,endpoint=True)):
         u = np.zeros(shape=(n_lanc,1),dtype=np.complex128)
         u[0,0]=1.
     
-        for iz,z in enumerate(zspace):
-            m = np.diag(z+epsi-alpha, k=0)-np.diag(beta[1:],k=1)-np.diag(beta[1:].conjugate(),k=-1) 
-            num = np.linalg.det( np.append(u,m[:,1:],axis=1) )
+        for iw,w in enumerate(wspace):
+            m = np.diag(zspace[iw]+epsi-alpha, k=0)-np.diag(beta[1:],k=1)-np.diag(beta[1:].conjugate(),k=-1) 
+            B_num = m.copy() #np.linalg.det( np.append(u,m[:,1:],axis=1) )
+            B_num[:,0] =  u[:,0]
+            num = np.linalg.det(B_num)   
             den = np.linalg.det(m)
-            G[iz] += (num/den).imag
+            G[iw] += (num/den).imag
     
-    G = -G/hf.N
+    G = -G/hf.N/abs(wspace)
     
     print(zspace[find_peaks(abs(G))[0]])
     peaks = find_peaks(abs(G))[0]
-    plt.plot(zspace,G)
+    plt.plot(wspace[len(wspace)//2:], G[:len(wspace)//2][::-1] + G[len(wspace)//2:])
     plt.title("U: %.3f"%(U))
-    # plt.plot(zspace[peaks]-gs_energy,((G/(zspace-gs_energy+1e-7))[peaks]))
     plt.yscale('log')
-    #plt.show()
-    plt.savefig("./figure/%d.png"%(ijk), format='png', dpi=600 )
-    plt.close('all')
+    #plt.ylim(-1,1)
+    plt.show()
+    #plt.plot(zspace[peaks]-gs_energy,((G/(zspace-gs_energy+1e-7))[peaks]))
+    #plt.savefig("./figure/%d.png"%(ijk), format='png', dpi=600 )
+    #plt.close('all')
     
     
     """
